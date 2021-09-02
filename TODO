@@ -1,6 +1,8 @@
 * warnings
     * control to enable/disable
 * animation
+* sharable links
+* styling (esp `select`s)
 * v/h split
     * coord sync
     * show cursor in other views

@@ -1,0 +1,6 @@
+flask
+flask-caching
+google-cloud-storage
+gunicorn
+pillow
+numpy

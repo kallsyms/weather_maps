@@ -1,9 +1,8 @@
-# TODO: does pypy help here?
-
 import sys
 import os
 import numpy as np
-import pyart
+import pyart  # TODO: selective import
+import time
 from PIL import Image
 
 cms = {
@@ -14,6 +13,9 @@ cms = {
 
 if __name__ == "__main__":
     l2fn = sys.argv[1]
+
+    start = time.time()
+
     radar = pyart.io.read_nexrad_archive(l2fn)
 
     # mask out last 10 gates of each ray, this removes the "ring" around the radar.
@@ -38,3 +40,5 @@ if __name__ == "__main__":
         colored = cms[field_name](data) * 255
         im = Image.fromarray(colored.astype(np.uint8))
         im.save(os.path.basename(l2fn) + "_" + field_name + ".png")
+
+    print(time.time() - start)

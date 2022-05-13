@@ -1,5 +1,10 @@
 // if this ever switches to a higher quality (self hosted) data source, _maybe_ increase maxzoom to 12ish
 var map = L.map('map', {minZoom: 3, maxZoom: 10}).setView([37.8, -96], 4);
+map.createPane('labels');
+
+// https://github.com/Leaflet/Leaflet/blob/v1.0.0/dist/leaflet.css#L84
+map.getPane('labels').style.zIndex = 450;
+map.getPane('labels').style.pointerEvents = 'none';
 
 // previews: https://leaflet-extras.github.io/leaflet-providers/preview/
 var basemap = L.tileLayer.colorFilter('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}{r}.png', {
@@ -12,6 +17,7 @@ var labels = L.tileLayer.colorFilter('https://stamen-tiles-{s}.a.ssl.fastly.net/
 	attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 	subdomains: 'abcd',
     filter: ['invert: 100%'],  // https://github.com/xtk93x/Leaflet.TileLayer.ColorFilter
+    pane: 'labels',
 });
 labels.addTo(map);
 
@@ -26,11 +32,12 @@ const nexrad_products = {
 var options = {
     'NEXRAD Mosaic': {
         options: () => [['Reflectivity']],
-        serviceName: (opts) => 'nexrad-n0q-900913',
+        IEMServiceName: (opts) => 'nexrad-n0q-900913',
     },
     'NEXRAD Site': {
         options: () => [nexrad_sites, nexrad_products],
-        serviceName: (opts) => `ridge::${opts[0]}-${opts[1]}-0`,
+        IEMServiceName: (opts) => `ridge::${opts[0]}-${opts[1]}-0`,
+        L3Path: (opts) => `${opts[0]}/${opts[1]}/latest`,
     },
     'GOES': {
         options: () => {
@@ -40,28 +47,35 @@ var options = {
             }
             return [['East', 'West'], channels];
         },
-        serviceName: (opts) => `goes_${opts[0].toLowerCase()}_fulldisk_ch${opts[1]}`,
+        IEMServiceName: (opts) => `goes_${opts[0].toLowerCase()}_fulldisk_ch${opts[1]}`,
     },
     //'HRRR': {'Reflectivity': {}},
 }
 
-function IEMLayer(serviceName) {
+function IEMLayer(IEMServiceName) {
     return L.tileLayer('https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/{service}/{z}/{x}/{y}.png', {
         attribution: 'Iowa Environmental Mesonet',
         subdomains: '123',
-        service: serviceName,
+        service: IEMServiceName,
         opacity: 0.8,
     });
 }
 
-var IEM;
+function L3Layer(path) {
+    return L.imageOverlay(
+        `https://l3-render-kmhncqyeya-uc.a.run.app/l3/${path}/render`,
+        [[25.00, -125.00], [50.00, -65.00]],
+    )
+}
+
+var weatherLayer;
 
 var typeSelect = document.getElementById('baseType');
 var typeOptionsDiv = document.getElementById('typeOptionsDiv');
 
 function optChange() {
-    if (IEM !== undefined) {
-        map.removeLayer(IEM);
+    if (weatherLayer !== undefined) {
+        map.removeLayer(weatherLayer);
     }
     let t = options[typeSelect.value];
 
@@ -70,9 +84,12 @@ function optChange() {
         selectedOptions.push(child.value);
     }
 
-    IEM = IEMLayer(t.serviceName(selectedOptions));
-    IEM.addTo(map);
-    labels.bringToFront();
+    if (t.L3Path !== undefined) {
+        weatherLayer = L3Layer(t.L3Path(selectedOptions));
+    } else {
+        weatherLayer = IEMLayer(t.IEMServiceName(selectedOptions));
+    }
+    weatherLayer.addTo(map);
 }
 
 typeSelect.onchange = () => {

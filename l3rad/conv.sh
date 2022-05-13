@@ -9,7 +9,7 @@ export LUT=${5:-GRAY}
 
 export bounds=${bounds:-25.00;-125.00;50.00;-65.00}
 export proj=${proj:-mer}
-export dims=${dims:-1700;1200}
+export dims=${dims:-6000;2600}
 
 nex2img << EOF
  GRDAREA  = ${bounds}

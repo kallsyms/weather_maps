@@ -6,3 +6,5 @@
 * v/h split
     * coord sync
     * show cursor in other views
+l2 cross section
+    https://arm-doe.github.io/pyart/API/generated/pyart.util.cross_section_ppi.html?highlight=cross_section_ppi

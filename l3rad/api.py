@@ -55,12 +55,7 @@ def l3_list_files(site, product):
     return jsonify({'files': [pathlib.Path(blob.name).name for blob in blobs]})
 
 
-@app.route('/l3/<site>/<product>/<fn>/render', methods=['GET'])
-@cache.cached(timeout=60*60)
-def l3_render_file(site, product, fn):
-    site = site.upper()
-    product = product.upper()
-
+def render(site, product, fn):
     date = datetime.datetime.strptime(fn.split('_', 1)[1], '%Y%m%d_%H%M')
 
     with tempfile.TemporaryDirectory() as rad_dir:
@@ -91,6 +86,24 @@ def l3_render_file(site, product, fn):
         Image.fromarray(img).save(bio, 'PNG')
         bio.seek(0)
         return send_file(bio, mimetype='image/png')
+
+
+@app.route('/l3/<site>/<product>/latest/render', methods=['GET'])
+@cache.cached(timeout=60*3)
+def l3_render_latest(site, product):
+    site = site.upper()
+    product = product.upper()
+    blobs = storage_client.list_blobs(l3_bucket.name, prefix=f'NIDS/{site}/{product}/')
+    fn = pathlib.Path(list(blobs)[-1].name).name
+    return render(site, product, fn)
+
+
+@app.route('/l3/<site>/<product>/<fn>/render', methods=['GET'])
+@cache.cached(timeout=60*60)
+def l3_render_file(site, product, fn):
+    site = site.upper()
+    product = product.upper()
+    return render(site, product, fn)
 
 
 if __name__ == "__main__":
